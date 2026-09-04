@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RepoNarrator AI — Explain Any GitHub Project</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ── BACKGROUND PARTICLES ── -->
+  <div class="bg-grid"></div>
+
+  <!-- ── NAV ── -->
+  <nav class="nav">
+    <div class="nav-brand">
+      <span class="brand-icon">🤖</span>
+      <span class="brand-name">RepoNarrator <span class="brand-ai">AI</span></span>
+    </div>
+    <div class="nav-badge">Powered by Gemini</div>
+  </nav>
+
+  <!-- ── HERO ── -->
+  <section class="hero" id="hero">
+    <div class="hero-tag">✨ Multi-Agent AI System</div>
+    <h1 class="hero-title">
+      Turn any GitHub repo into<br />
+      <span class="gradient-text">a beautiful presentation</span>
+    </h1>
+    <p class="hero-sub">
+      4 AI Agents work together — Fetch → Analyze → Explain → Present.<br />
+      Paste a public repo URL. Get a full presentation in seconds.
+    </p>
+
+    <!-- ── INPUT ── -->
+    <div class="input-card" id="inputCard">
+      <div class="input-wrap">
+        <span class="input-icon">🔗</span>
+        <input
+          type="text"
+          id="repoUrl"
+          class="repo-input"
+          placeholder="https://github.com/username/repository"
+          autocomplete="off"
+        />
+        <button class="analyze-btn" id="analyzeBtn" onclick="startAnalysis()">
+          <span id="btnText">Analyze →</span>
+        </button>
+      </div>
+      <div class="input-examples">
+        <span>Try:</span>
+        <button class="example-chip" onclick="fillExample('https://github.com/ranjithbrs/secure-ai-journal-app')">secure-ai-journal-app</button>
+        <button class="example-chip" onclick="fillExample('https://github.com/ranjithbrs/Online-Examination-System')">Online-Examination-System</button>
+        <button class="example-chip" onclick="fillExample('https://github.com/ranjithbrs/CertValid')">CertValid</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── AGENT PIPELINE (shown during analysis) ── -->
+  <section class="pipeline-section" id="pipelineSection" style="display:none;">
+    <h2 class="pipeline-title">🤖 Agent Pipeline Running...</h2>
+    <p class="pipeline-sub" id="pipelineSub">Agents are working on your repository</p>
+
+    <div class="agents-grid">
+
+      <div class="agent-card" id="agent1">
+        <div class="agent-icon">🔍</div>
+        <div class="agent-info">
+          <div class="agent-name">Agent 1 — Fetcher</div>
+          <div class="agent-status" id="status1">Waiting...</div>
+        </div>
+        <div class="agent-badge" id="badge1">⏳</div>
+      </div>
+
+      <div class="agent-connector">↓</div>
+
+      <div class="agent-card" id="agent2">
+        <div class="agent-icon">🧠</div>
+        <div class="agent-info">
+          <div class="agent-name">Agent 2 — Analyzer</div>
+          <div class="agent-status" id="status2">Waiting...</div>
+        </div>
+        <div class="agent-badge" id="badge2">⏳</div>
+      </div>
+
+      <div class="agent-connector">↓</div>
+
+      <div class="agent-card" id="agent3">
+        <div class="agent-icon">💬</div>
+        <div class="agent-info">
+          <div class="agent-name">Agent 3 — Explainer</div>
+          <div class="agent-status" id="status3">Waiting...</div>
+        </div>
+        <div class="agent-badge" id="badge3">⏳</div>
+      </div>
+
+      <div class="agent-connector">↓</div>
+
+      <div class="agent-card" id="agent4">
+        <div class="agent-icon">🎨</div>
+        <div class="agent-info">
+          <div class="agent-name">Agent 4 — Presenter</div>
+          <div class="agent-status" id="status4">Waiting...</div>
+        </div>
+        <div class="agent-badge" id="badge4">⏳</div>
+      </div>
+
+    </div>
+
+    <!-- ── SUCCESS LAUNCH ACTION ── -->
+    <div id="launchCard" style="display:none; margin-top:30px; text-align:center;">
+      <a id="viewPresentationBtn" href="/presentation" class="analyze-btn" style="display:inline-block; text-decoration:none; padding:16px 36px; font-size:1.1rem; box-shadow:0 0 30px rgba(99,102,241,0.5);">
+        🎉 Open Presentation Now →
+      </a>
+      <p style="margin-top:10px; font-size:0.85rem; color:#94a3b8;">Click above if it doesn't open automatically</p>
+    </div>
+  </section>
+
+  <!-- ── FEATURES (shown on landing) ── -->
+  <section class="features-section" id="featuresSection">
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-title">Smart File Fetching</div>
+        <div class="feature-desc">Reads all source files from any public GitHub repo automatically</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">AI Architecture Analysis</div>
+        <div class="feature-desc">Identifies tech stack, patterns, and project purpose using Gemini</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <div class="feature-title">Plain English Explanation</div>
+        <div class="feature-desc">Converts complex code into clear, impressive presentation language</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <div class="feature-title">Beautiful Slides</div>
+        <div class="feature-desc">Auto-generates a professional presentation ready for industry demos</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ERROR TOAST ── -->
+  <div class="error-toast" id="errorToast" style="display:none;">
+    <span>❌</span> <span id="errorMsg">Something went wrong</span>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>

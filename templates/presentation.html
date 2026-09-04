@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RepoNarrator AI — Presentation</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root { --accent: #6366f1; }
+
+    .reveal { font-family: 'Inter', sans-serif; }
+    .reveal .slides section { height: 100%; }
+
+    /* ── Slide Themes ── */
+    .slide-blue   { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%) !important; }
+    .slide-purple { background: linear-gradient(135deg, #0f172a 0%, #4c1d95 100%) !important; }
+    .slide-green  { background: linear-gradient(135deg, #0f172a 0%, #064e3b 100%) !important; }
+    .slide-teal   { background: linear-gradient(135deg, #0f172a 0%, #134e4a 100%) !important; }
+    .slide-orange { background: linear-gradient(135deg, #0f172a 0%, #7c2d12 100%) !important; }
+
+    /* ── Slide Layout ── */
+    .slide-inner {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100vh;
+      padding: 60px 80px;
+      text-align: left;
+      box-sizing: border-box;
+    }
+
+    /* ── Intro Slide ── */
+    .slide-intro .hero-emoji { font-size: 5rem; margin-bottom: 20px; display: block; }
+    .slide-intro .project-title {
+      font-size: 3.5rem;
+      font-weight: 900;
+      line-height: 1.1;
+      background: linear-gradient(90deg, #fff, #a5b4fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 0 0 16px;
+    }
+    .slide-intro .project-tagline {
+      font-size: 1.3rem;
+      color: #94a3b8;
+      font-weight: 400;
+      margin: 0 0 30px;
+    }
+    .slide-intro .intro-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+    .intro-badge {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #e2e8f0;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .intro-badge.live { background: rgba(34,197,94,0.2); border-color: #22c55e; color: #4ade80; }
+
+    /* ── Regular Slides ── */
+    .slide-header { display: flex; align-items: center; gap: 16px; margin-bottom: 36px; }
+    .slide-emoji { font-size: 2.8rem; }
+    .slide-title-text {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #fff;
+      margin: 0;
+    }
+    .slide-subtitle-text { font-size: 1rem; color: #94a3b8; margin: 4px 0 0; }
+
+    .bullets-list { list-style: none; padding: 0; margin: 0; }
+    .bullets-list li {
+      font-size: 1.15rem;
+      color: #e2e8f0;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      line-height: 1.5;
+    }
+    .bullets-list li:last-child { border-bottom: none; }
+
+    .hero-text-big {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #a5b4fc;
+      margin: 24px 0 16px;
+      font-style: italic;
+    }
+
+    /* ── Slide Badge ── */
+    .slide-badge {
+      display: inline-block;
+      background: rgba(99,102,241,0.3);
+      border: 1px solid #6366f1;
+      color: #a5b4fc;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+
+    /* ── Watermark ── */
+    .watermark {
+      position: fixed;
+      bottom: 20px;
+      right: 30px;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.2);
+      font-family: 'Inter', sans-serif;
+      z-index: 100;
+    }
+
+    /* ── Controls ── */
+    .top-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 200;
+      font-family: 'Inter', sans-serif;
+    }
+    .top-bar-brand { color: #a5b4fc; font-weight: 700; font-size: 0.9rem; }
+    .back-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-decoration: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .reveal .controls { bottom: 50px !important; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <span class="top-bar-brand">🤖 RepoNarrator AI</span>
+    <a href="/" class="back-btn">← New Analysis</a>
+  </div>
+
+  <div class="watermark">RepoNarrator AI • Powered by Gemini</div>
+
+  <div class="reveal">
+    <div class="slides" id="slidesContainer">
+      <!-- Slides injected by script.js -->
+      <section>
+        <div class="slide-inner" style="text-align:center; justify-content:center;">
+          <div style="font-size:3rem;">⏳</div>
+          <p style="color:#94a3b8; font-family:Inter,sans-serif;">Loading presentation...</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script>
+    // ── Color theme mapping ──
+    const THEME_CLASS = {
+      blue: 'slide-blue', purple: 'slide-purple',
+      green: 'slide-green', teal: 'slide-teal', orange: 'slide-orange'
+    };
+
+    function buildSlideHTML(slide) {
+      const theme = THEME_CLASS[slide.color_theme] || 'slide-blue';
+      const badge = slide.badge ? `<div class="slide-badge">${slide.badge}</div>` : '';
+
+      if (slide.type === 'intro') {
+        return `
+          <section class="${theme}">
+            <div class="slide-inner slide-intro">
+              <span class="hero-emoji">${slide.emoji || '🚀'}</span>
+              ${badge}
+              <h1 class="project-title">${slide.title}</h1>
+              <p class="project-tagline">${slide.subtitle || ''}</p>
+              <div class="intro-meta">
+                ${(slide.bullets || []).map(b => `<span class="intro-badge">${b}</span>`).join('')}
+              </div>
+            </div>
+          </section>`;
+      }
+
+      const bulletsHTML = (slide.bullets || [])
+        .map(b => `<li>${b}</li>`).join('');
+      const heroText = slide.hero_text
+        ? `<div class="hero-text-big">"${slide.hero_text}"</div>` : '';
+
+      return `
+        <section class="${theme}">
+          <div class="slide-inner">
+            ${badge}
+            <div class="slide-header">
+              <span class="slide-emoji">${slide.emoji || '📌'}</span>
+              <div>
+                <div class="slide-title-text">${slide.title}</div>
+                ${slide.subtitle ? `<div class="slide-subtitle-text">${slide.subtitle}</div>` : ''}
+              </div>
+            </div>
+            ${heroText}
+            <ul class="bullets-list">${bulletsHTML}</ul>
+          </div>
+        </section>`;
+    }
+
+    function renderPresentation(slides) {
+      const container = document.getElementById('slidesContainer');
+      container.innerHTML = slides.map(buildSlideHTML).join('');
+      Reveal.sync();
+      Reveal.slide(0);
+    }
+
+    // ── Load slides from storage & initialize Reveal ──
+    window.addEventListener('load', () => {
+      const raw = localStorage.getItem('reponarrator_slides') || sessionStorage.getItem('reponarrator_slides');
+      if (raw) {
+        try {
+          const slides = JSON.parse(raw);
+          if (Array.isArray(slides) && slides.length > 0) {
+            const container = document.getElementById('slidesContainer');
+            container.innerHTML = slides.map(buildSlideHTML).join('');
+          }
+        } catch (e) {
+          console.error('Failed to parse slides', e);
+        }
+      }
+
+      Reveal.initialize({
+        hash: true,
+        transition: 'slide',
+        transitionSpeed: 'fast',
+        controls: true,
+        progress: true,
+        center: false,
+        width: '100%',
+        height: '100%',
+        margin: 0,
+      });
+    });
+  </script>
+</body>
+</html>

@@ -141,13 +141,56 @@
     }
     .back-btn:hover { background: rgba(255,255,255,0.2); }
 
-    .reveal .controls { bottom: 50px !important; }
+    .voice-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .voice-btn {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .voice-btn:hover { opacity: 0.9; transform: scale(1.02); }
+    .voice-btn.speaking { background: #ef4444; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{box-shadow: 0 0 10px rgba(239,68,68,0.4);} 50%{box-shadow: 0 0 20px rgba(239,68,68,0.8);} }
+
+    .auto-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .auto-toggle input { cursor: pointer; accent-color: #6366f1; }
   </style>
 </head>
 <body>
 
   <div class="top-bar">
-    <span class="top-bar-brand">🤖 RepoNarrator AI</span>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <span class="top-bar-brand">🤖 RepoNarrator AI</span>
+      <div class="voice-controls">
+        <button id="voiceBtn" class="voice-btn" onclick="toggleNarration()">
+          <span id="voiceIcon">🔊</span> <span id="voiceText">Narrate Slide</span>
+        </button>
+        <label class="auto-toggle">
+          <input type="checkbox" id="autoPlayCheckbox" onchange="toggleAutoPlay(this.checked)">
+          <span>Auto-advance slides</span>
+        </label>
+      </div>
+    </div>
     <a href="/" class="back-btn">← New Analysis</a>
   </div>
 
@@ -221,15 +264,114 @@
       Reveal.slide(0);
     }
 
+    let currentSlides = [];
+    let isSpeaking = false;
+    let autoAdvance = false;
+
+    // ── Speech Synthesis Narration ──
+    function getSlideNarration(index) {
+      if (!currentSlides || !currentSlides[index]) return '';
+      const slide = currentSlides[index];
+      if (slide.narration) return slide.narration;
+
+      // Fallback narration constructed from slide fields
+      const bullets = (slide.bullets || []).join('. ').replace(/[^\w\s.,]/gi, '');
+      return `${slide.title}. ${slide.subtitle || ''}. ${bullets}`;
+    }
+
+    function toggleNarration() {
+      if (isSpeaking) {
+        stopNarration();
+      } else {
+        const index = Reveal.getState().indexh || 0;
+        speakSlide(index);
+      }
+    }
+
+    function speakSlide(index) {
+      if (!('speechSynthesis' in window)) {
+        alert('Voice narration is not supported in this browser.');
+        return;
+      }
+
+      window.speechSynthesis.cancel(); // Stop any previous utterance
+
+      const text = getSlideNarration(index);
+      if (!text) return;
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      // Try selecting a natural English voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const engVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha')));
+      if (engVoice) utterance.voice = engVoice;
+
+      utterance.onstart = () => {
+        isSpeaking = true;
+        updateVoiceButton(true);
+      };
+
+      utterance.onend = () => {
+        isSpeaking = false;
+        updateVoiceButton(false);
+        if (autoAdvance) {
+          const nextIndex = (Reveal.getState().indexh || 0) + 1;
+          if (nextIndex < currentSlides.length) {
+            Reveal.next();
+            setTimeout(() => speakSlide(nextIndex), 800);
+          }
+        }
+      };
+
+      utterance.onerror = () => {
+        isSpeaking = false;
+        updateVoiceButton(false);
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function stopNarration() {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      isSpeaking = false;
+      updateVoiceButton(false);
+    }
+
+    function updateVoiceButton(speaking) {
+      const btn = document.getElementById('voiceBtn');
+      const icon = document.getElementById('voiceIcon');
+      const text = document.getElementById('voiceText');
+      if (speaking) {
+        btn.classList.add('speaking');
+        icon.textContent = '⏸️';
+        text.textContent = 'Stop Narration';
+      } else {
+        btn.classList.remove('speaking');
+        icon.textContent = '🔊';
+        text.textContent = 'Narrate Slide';
+      }
+    }
+
+    function toggleAutoPlay(checked) {
+      autoAdvance = checked;
+      if (autoAdvance && !isSpeaking) {
+        speakSlide(Reveal.getState().indexh || 0);
+      }
+    }
+
     // ── Load slides from storage & initialize Reveal ──
     window.addEventListener('load', () => {
       const raw = localStorage.getItem('reponarrator_slides') || sessionStorage.getItem('reponarrator_slides');
       if (raw) {
         try {
-          const slides = JSON.parse(raw);
-          if (Array.isArray(slides) && slides.length > 0) {
+          currentSlides = JSON.parse(raw);
+          if (Array.isArray(currentSlides) && currentSlides.length > 0) {
             const container = document.getElementById('slidesContainer');
-            container.innerHTML = slides.map(buildSlideHTML).join('');
+            container.innerHTML = currentSlides.map(buildSlideHTML).join('');
           }
         } catch (e) {
           console.error('Failed to parse slides', e);
@@ -246,6 +388,15 @@
         width: '100%',
         height: '100%',
         margin: 0,
+      });
+
+      // When user manually navigates slides via arrow keys, stop active speech unless autoAdvance is on
+      Reveal.on('slidechanged', (event) => {
+        if (isSpeaking && !autoAdvance) {
+          stopNarration();
+        } else if (autoAdvance) {
+          speakSlide(event.indexh);
+        }
       });
     });
   </script>

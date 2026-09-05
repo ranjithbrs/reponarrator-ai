@@ -45,6 +45,7 @@ Return a JSON array of EXACTLY 7 slide objects. Each slide must have:
 - "emoji": single emoji representing the slide
 - "color_theme": one of ["blue", "purple", "green", "teal", "orange"]
 - "badge": short badge text like "LIVE" or "AI-POWERED" or "OPEN SOURCE" or empty string
+- "narration": 2 to 3 natural spoken sentences explaining this slide out loud to the audience in clear, engaging English
 
 Slide sequence must be:
 1. intro - Title slide with project name and tagline
@@ -86,7 +87,8 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": explanation.get('one_liner', ''),
             "emoji": "🚀",
             "color_theme": "blue",
-            "badge": "LIVE DEMO"
+            "badge": "LIVE DEMO",
+            "narration": f"Welcome to the presentation for {name}. This project is a {analysis.get('project_type')} built with {stack}."
         },
         {
             "title": "The Problem",
@@ -96,7 +98,8 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": "",
             "emoji": "❓",
             "color_theme": "orange",
-            "badge": ""
+            "badge": "",
+            "narration": explanation.get('problem_solved', 'Traditional workflows often rely on manual, time-consuming operations that lack automation.')
         },
         {
             "title": "Our Solution",
@@ -106,7 +109,8 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": explanation.get('tagline', ''),
             "emoji": "✅",
             "color_theme": "green",
-            "badge": "SOLUTION"
+            "badge": "SOLUTION",
+            "narration": explanation.get('overview', f'{name} addresses these challenges by delivering an automated, streamlined software solution.')
         },
         {
             "title": "Key Features",
@@ -116,7 +120,8 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": "",
             "emoji": "⭐",
             "color_theme": "purple",
-            "badge": ""
+            "badge": "",
+            "narration": f"Here are the core capabilities of {name}, designed for ease of use, security, and reliability."
         },
         {
             "title": "Tech Stack",
@@ -126,7 +131,8 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": stack,
             "emoji": "💻",
             "color_theme": "teal",
-            "badge": "MODERN STACK"
+            "badge": "MODERN STACK",
+            "narration": f"Under the hood, this project is powered by {stack}, providing modularity, high performance, and scalability."
         },
         {
             "title": "Impact & Demo",
@@ -136,7 +142,8 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": "",
             "emoji": "📊",
             "color_theme": "blue",
-            "badge": "LIVE"
+            "badge": "LIVE",
+            "narration": explanation.get('impact', 'This project significantly streamlines operations, saving time and reducing manual overhead for end users.')
         },
         {
             "title": "Future Roadmap",
@@ -146,6 +153,7 @@ Respond with ONLY the JSON array, no markdown, no extra text."""
             "hero_text": "",
             "emoji": "🔮",
             "color_theme": "purple",
-            "badge": "ROADMAP"
+            "badge": "ROADMAP",
+            "narration": "Looking ahead, the development roadmap includes introducing AI integrations, mobile support, and deep analytics."
         }
     ]

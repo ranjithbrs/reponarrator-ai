@@ -4,7 +4,7 @@
 [![AI: Google Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Architecture: Multi--Agent](https://img.shields.io/badge/Architecture-Multi--Agent%20Pipeline-orange?style=for-the-badge)](agents/)
 [![Realtime: Server--Sent Events](https://img.shields.io/badge/Streaming-Server--Sent%20Events%20(SSE)-success?style=for-the-badge)](app.py)
-[![Presentation: Reveal.js](https://img.shields.io/badge/Slides-Reveal.js%20Engine-E44D26?style=for-the-badge&logo=html5&logoColor=white)](https://revealjs.com/)
+[![Article: Medium](https://img.shields.io/badge/Article-Medium%20Deep%20Dive-000000?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@ranjithb2k06/building-an-autonomous-4-agent-pipeline-with-google-gemini-2-0-flash-and-server-sent-events-65d0bc944d2c)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 
 > Transform any public GitHub repository into an executive-ready, interactive slide presentation in seconds using an autonomous 4-agent pipeline powered by Google Gemini 2.0 Flash and Server-Sent Events (SSE).

@@ -16,9 +16,6 @@ def generate_slides(explanation, analysis, repo_info):
     Generate 7 structured presentation slides.
     Returns: list of slide dicts
     """
-    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-    model = 'gemini-3.6-flash'
-
     prompt = f"""You are a world-class presentation designer for a tech industry meeting.
 Create 7 compelling slides for this software project presentation.
 
@@ -59,6 +56,13 @@ Slide sequence must be:
 Respond with ONLY the JSON array, no markdown, no extra text."""
 
     try:
+        api_key = os.getenv('GEMINI_API_KEY', '').strip()
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set.")
+
+        client = genai.Client(api_key=api_key)
+        model = 'gemini-3.6-flash'
+
         response = client.models.generate_content(model=model, contents=prompt)
         text = response.text.strip()
         if '```' in text:

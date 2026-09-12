@@ -73,10 +73,13 @@ function startAnalysis() {
   // Start SSE stream
   const evtSource = new EventSource(`/analyze?url=${encodeURIComponent(url)}`);
 
+  let isCompleted = false;
+
   evtSource.onmessage = (event) => {
     const data = JSON.parse(event.data);
 
     if (data.error) {
+      isCompleted = true;
       evtSource.close();
       showError(data.error);
       resetUI();
@@ -95,6 +98,7 @@ function startAnalysis() {
 
     // All done — go to presentation
     if (data.complete && data.slides) {
+      isCompleted = true;
       evtSource.close();
 
       // Store in both localStorage and sessionStorage for bulletproof persistence
@@ -117,9 +121,11 @@ function startAnalysis() {
   };
 
   evtSource.onerror = () => {
-    evtSource.close();
-    showError('Connection error. Please try again.');
-    resetUI();
+    if (!isCompleted) {
+      evtSource.close();
+      showError('Connection interrupted. Please check your network and try again.');
+      resetUI();
+    }
   };
 }
 

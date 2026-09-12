@@ -17,9 +17,6 @@ def analyze_repo(files, repo_info):
     Analyze repository structure and identify tech stack, architecture, etc.
     Returns: structured analysis dict
     """
-    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-    model = 'gemini-3.6-flash'
-
     file_list = list(files.keys())
 
     # Sample first 500 chars of up to 12 key files
@@ -61,6 +58,13 @@ Return ONLY a JSON object with these exact fields:
 Respond with ONLY the JSON object, no markdown, no explanation."""
 
     try:
+        api_key = os.getenv('GEMINI_API_KEY', '').strip()
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set.")
+
+        client = genai.Client(api_key=api_key)
+        model = 'gemini-3.6-flash'
+
         response = client.models.generate_content(model=model, contents=prompt)
         text = response.text.strip()
         if '```' in text:

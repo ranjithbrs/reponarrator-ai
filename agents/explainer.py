@@ -17,9 +17,6 @@ def explain_repo(analysis, files):
     Generate a human-readable explanation of the project.
     Returns: explanation dict with sections
     """
-    client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
-    model = 'gemini-3.6-flash'
-
     # Extract README if present
     readme = ''
     for path, content in files.items():
@@ -55,6 +52,13 @@ Use confident, professional language. Make it suitable for impressing an Agentic
 Respond with ONLY the JSON object."""
 
     try:
+        api_key = os.getenv('GEMINI_API_KEY', '').strip()
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY is not set.")
+
+        client = genai.Client(api_key=api_key)
+        model = 'gemini-3.6-flash'
+
         response = client.models.generate_content(model=model, contents=prompt)
         text = response.text.strip()
         if '```' in text:

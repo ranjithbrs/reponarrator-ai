@@ -7,11 +7,38 @@
 [![Article: Medium](https://img.shields.io/badge/Article-Medium%20Deep%20Dive-000000?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@ranjithb2k06/building-an-autonomous-4-agent-pipeline-with-google-gemini-2-0-flash-and-server-sent-events-65d0bc944d2c)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 
-> Transform any public GitHub repository into an executive-ready, interactive slide presentation in seconds using an autonomous 4-agent pipeline powered by Google Gemini 2.0 Flash and Server-Sent Events (SSE).
+> 🌟 **Transform any code project into a stunning presentation in one click — no PowerPoint or coding knowledge required!**
+
+---
+
+## 💡 What is RepoNarrator AI in 30 Seconds? (In Plain English)
+
+Imagine you built or found an amazing software project on GitHub, but you need to explain it to a teacher, a client, a hiring manager, or an investor who **does not code**. 
+
+Normally, you would spend hours reading files, taking screenshots, and making PowerPoint slides.
+
+**RepoNarrator AI does all of that for you in under 15 seconds!**  
+You simply paste any GitHub link, and **4 autonomous AI helpers work together like a creative team**:
+1. 🔍 **Agent 1 (The Reader):** Reads the project code files from GitHub.
+2. 🧠 **Agent 2 (The Architect):** Understands what tools, databases, and languages were used.
+3. 💬 **Agent 3 (The Storyteller):** Explains what problem the project solves in clear, simple business language.
+4. 🎨 **Agent 4 (The Designer):** Automatically generates a clean, interactive slide presentation that you can present right inside your browser!
+
+---
+
+## ❓ The Problem & Solution
+
+| ❌ The Hard Way (Manual Work) | ✅ The Smart Way (RepoNarrator AI) |
+| :--- | :--- |
+| Spending 3 to 4 hours manually designing presentation slides. | Generates animated, executive-ready slides in 15 seconds. |
+| Hard for non-programmers to understand complex code. | Translates raw code into simple real-world benefits. |
+| Static PowerPoint files that quickly become outdated. | Interactive browser slides with live animations and code highlights. |
 
 ---
 
 ## 📑 Table of Contents
+- [What is RepoNarrator AI?](#-what-is-reponarrator-ai-in-30-seconds-in-plain-english)
+- [The Problem & Solution](#-the-problem--solution)
 - [Multi-Agent Architecture & Sequence](#-multi-agent-architecture--sequence)
 - [Agent Decomposition](#-agent-decomposition)
 - [Key Technical Highlights](#-key-technical-highlights)

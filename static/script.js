@@ -55,7 +55,7 @@ function startAnalysis() {
   // Disable button
   const btn = document.getElementById('analyzeBtn');
   btn.disabled = true;
-  document.getElementById('btnText').innerHTML = '<span class="spinner"></span> Analyzing...';
+  document.getElementById('btnText').textContent = 'Analyzing...';
 
   // Show pipeline sub-text
   document.getElementById('pipelineSub').textContent = url;

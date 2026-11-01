@@ -6,12 +6,16 @@ Supports:
 2. GitHub REST API fallback
 """
 
+import os
 import requests
 import base64
 import re
 import io
 import zipfile
 import urllib.request
+from dotenv import load_dotenv
+
+load_dotenv()
 
 MAX_FILES = 25
 MAX_FILE_SIZE = 50000  # 50KB per file
@@ -36,6 +40,18 @@ PRIORITY_FILES = {
 }
 
 
+def get_github_headers():
+    """Build request headers, optionally attaching GITHUB_TOKEN for elevated rate limits."""
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) RepoNarrator-AI',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    token = os.getenv('GITHUB_TOKEN')
+    if token and token.strip():
+        headers['Authorization'] = f"token {token.strip()}"
+    return headers
+
+
 def parse_github_url(url):
     """Extract owner and repo name from any GitHub URL format."""
     url = url.strip().rstrip('/')
@@ -48,10 +64,17 @@ def parse_github_url(url):
 def fetch_repo_via_zip(owner, repo):
     """Download the public repo zip directly without any GitHub API rate limits."""
     files = {}
+    headers = get_github_headers()
+    token = os.getenv('GITHUB_TOKEN')
+    
+    # Try default branches and zip archive
     for branch in ['main', 'master']:
         zip_url = f"https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip"
         try:
-            req = urllib.request.Request(zip_url, headers={'User-Agent': 'Mozilla/5.0'})
+            req_headers = {'User-Agent': 'Mozilla/5.0'}
+            if token and token.strip():
+                req_headers['Authorization'] = f"token {token.strip()}"
+            req = urllib.request.Request(zip_url, headers=req_headers)
             with urllib.request.urlopen(req, timeout=15) as resp:
                 if resp.status == 200:
                     zip_data = resp.read()
@@ -112,10 +135,11 @@ def fetch_repo(repo_url):
         'homepage': '',
     }
 
-    # Attempt metadata from API (non-blocking if rate limited)
+    # Attempt metadata from API (with token if configured)
+    headers = get_github_headers()
     try:
         repo_api = f"https://api.github.com/repos/{owner}/{repo}"
-        r = requests.get(repo_api, timeout=5)
+        r = requests.get(repo_api, headers=headers, timeout=5)
         if r.status_code == 200:
             repo_data = r.json()
             repo_info.update({
@@ -126,7 +150,13 @@ def fetch_repo(repo_url):
                 'topics': repo_data.get('topics', []),
                 'homepage': repo_data.get('homepage', ''),
             })
-    except Exception:
+        elif r.status_code == 403:
+            print(f"Warning: GitHub API rate limited or forbidden for {owner}/{repo}. Falling back to zip extraction.")
+        elif r.status_code == 404:
+            raise Exception(f"Repository {owner}/{repo} not found on GitHub. Please check the URL.")
+    except Exception as e:
+        if "not found" in str(e).lower():
+            raise e
         pass
 
     # Method 1: Fetch via GitHub public ZIP archive (never hits 60 req/hr rate limit)
@@ -138,7 +168,7 @@ def fetch_repo(repo_url):
         for branch in ['main', 'master']:
             tree_url = f"https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1"
             try:
-                tr = requests.get(tree_url, timeout=8)
+                tr = requests.get(tree_url, headers=headers, timeout=8)
                 if tr.status_code == 200:
                     tree_data = tr.json()
                     break
@@ -159,7 +189,7 @@ def fetch_repo(repo_url):
                     continue
                 try:
                     content_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-                    cr = requests.get(content_url, timeout=6)
+                    cr = requests.get(content_url, headers=headers, timeout=6)
                     if cr.status_code == 200:
                         c_data = cr.json()
                         if c_data.get('encoding') == 'base64':
@@ -170,6 +200,6 @@ def fetch_repo(repo_url):
                     pass
 
     if not files:
-        raise Exception(f"Unable to read repository files for {owner}/{repo}. Please check if the repository is public.")
+        raise Exception(f"Unable to read repository files for {owner}/{repo}. Please check if the repository is public or if branch is neither main nor master.")
 
     return files, repo_info

@@ -61,36 +61,36 @@ sequenceDiagram
     participant UI as 🖥️ Web Client (SSE Listener)
     participant Server as ⚙️ Flask Controller (/analyze)
     participant Agent1 as 🔍 Agent 1: Fetcher
-    participant Agent2 as 🧠 Agent 2: Analyzer (Gemini)
-    participant Agent3 as 💬 Agent 3: Explainer (Gemini)
-    participant Agent4 as 🎨 Agent 4: Presenter (Gemini)
-    participant Slides as 📊 Presentation View (Reveal.js)
+    participant Agent2 as 🧠 Agent 2: Analyzer (Gemini 3.6 Flash)
+    participant Agent3 as 💬 Agent 3: Explainer (Gemini 3.6 Flash)
+    participant Agent4 as 🎨 Agent 4: Presenter (Gemini 3.6 Flash)
+    participant Slides as 📊 Presentation (Reveal.js + Web Speech)
 
     User->>UI: Paste GitHub Repository URL & Click "Analyze"
     UI->>Server: GET /analyze?url={repo_url} (EventStream)
     
     Server->>Agent1: fetch_repo(repo_url)
-    Agent1->>Agent1: Query GitHub REST API & filter binaries/dependencies
+    Agent1->>Agent1: Fast Zipball download & AST/manifest prioritization (Token-aware)
     Agent1-->>Server: Return {files, repo_info}
     Server-->>UI: event: Agent 1 Complete (Fetched N files)
 
     Server->>Agent2: analyze_repo(files, repo_info)
-    Agent2->>Agent2: Gemini 2.0 Flash infers architecture, tech stack & patterns
+    Agent2->>Agent2: Gemini 3.6 Flash infers architecture, tech stack & patterns
     Agent2-->>Server: Return {tech_stack, architecture, components}
     Server-->>UI: event: Agent 2 Complete (Detected stack)
 
     Server->>Agent3: explain_repo(analysis, files)
-    Agent3->>Agent3: Gemini 2.0 Flash synthesizes problem statement, solution & impact
+    Agent3->>Agent3: Gemini 3.6 Flash synthesizes problem statement, solution & impact
     Agent3-->>Server: Return {problem, solution, key_features, impact}
     Server-->>UI: event: Agent 3 Complete (Explanation ready)
 
     Server->>Agent4: generate_slides(explanation, analysis, repo_info)
-    Agent4->>Agent4: Synthesizes structured JSON into Reveal.js slide deck
+    Agent4->>Agent4: Generates Reveal.js slides + natural voiceover narration script
     Agent4-->>Server: Return {slides_payload}
     Server-->>UI: event: Complete & Cache presentation payload
     
     UI->>Slides: Automatically launch presentation tab
-    Slides-->>User: Interactive Reveal.js presentation with keyboard controls
+    Slides-->>User: Interactive Reveal.js deck + 🔊 AI Voiceover Narration + 📄 PDF Export
 ```
 
 ---
@@ -99,10 +99,10 @@ sequenceDiagram
 
 | Agent | Core Responsibility | Inputs | Outputs | AI Engine / Tool |
 | :--- | :--- | :--- | :--- | :--- |
-| **Agent 1: Fetcher** | Connects to GitHub REST API, parses repository trees, prioritizes source and configuration files, and filters binaries / build artifacts. | GitHub Repository URL | Manifest of key code files & repo metadata | GitHub API v3 / Python Requests |
-| **Agent 2: Analyzer** | Inspects project directory hierarchies, package manifests, and code files to identify architecture patterns (MVC, Microservices, Event-Driven) and dependencies. | Filtered code files & metadata | Technical profile (languages, frameworks, DBs, design patterns) | Google Gemini 2.0 Flash |
-| **Agent 3: Explainer** | Distills complex technical implementations into executive value propositions, problem definitions, architectural advantages, and real-world impact. | Technical profile & key files | Structured business & technical narrative | Google Gemini 2.0 Flash |
-| **Agent 4: Presenter** | Transforms narrative points into structured presentation sections, speaker notes, and interactive Reveal.js slides. | Technical narrative & profile | Validated Reveal.js slide deck schema | Google Gemini 2.0 Flash + Reveal.js |
+| **Agent 1: Fetcher** | Fetches code via high-speed GitHub zipball stream (bypassing 60 req/hr limits) with token-aware REST API fallback, AST/manifest prioritization, and binary stripping. | GitHub Repository URL | Manifest of key code files & repo metadata | Zipball stream + GitHub REST API v3 |
+| **Agent 2: Analyzer** | Inspects project directory hierarchies, package manifests, and code files to identify architecture patterns (MVC, Microservices, Event-Driven) and dependencies. | Filtered code files & metadata | Technical profile (languages, frameworks, DBs, design patterns) | Google Gemini 3.6 Flash |
+| **Agent 3: Explainer** | Distills complex technical implementations into executive value propositions, problem definitions, architectural advantages, and real-world impact. | Technical profile & key files | Structured business & technical narrative | Google Gemini 3.6 Flash |
+| **Agent 4: Presenter** | Transforms narrative points into structured Reveal.js presentation slides and slide-by-slide voice narration scripts. | Technical narrative & profile | Validated Reveal.js slide deck schema + voice scripts | Google Gemini 3.6 Flash + Web Speech API |
 
 ---
 
@@ -182,9 +182,13 @@ pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment Variables
-Create a `.env` file in the root folder:
+Create a `.env` file in the root folder (or copy from `.env.example`):
 ```env
+# Required: Google Gemini API Key
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# Optional: GitHub Personal Access Token (boosts rate limit to 5000 req/hr)
+# GITHUB_TOKEN=your_github_token_here
 ```
 
 ### 4. Run the Application
@@ -192,6 +196,41 @@ GEMINI_API_KEY=your_gemini_api_key_here
 python app.py
 ```
 Open your browser at `http://127.0.0.1:5000`.
+
+### 5. Automated Multi-Repo Verification Suite
+Run the built-in test suite to verify all 4 agents against diverse repo stacks:
+```bash
+python test_pipeline.py
+```
+
+---
+
+## ☁️ Deployment Guide
+
+### Deploying to Render
+1. Push your repository to GitHub.
+2. In [Render Dashboard](https://dashboard.render.com/), create a new **Web Service**.
+3. Select your repository `ranjithbrs/reponarrator-ai`.
+4. Configure service parameters:
+   - **Environment**: `Python`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app --workers 1 --threads 8 --timeout 120`
+5. In **Environment Variables**, add:
+   - `GEMINI_API_KEY` = your Gemini API key
+6. Click **Deploy**. Your app will be live at `https://<your-service>.onrender.com`!
+
+### Deploying to PythonAnywhere
+1. Open a Bash console and clone the repo:
+   ```bash
+   git clone https://github.com/ranjithbrs/reponarrator-ai.git
+   ```
+2. Create and activate a virtualenv with Python 3.10+:
+   ```bash
+   mkvirtualenv --python=/usr/bin/python3.10 reponarrator-venv
+   pip install -r requirements.txt
+   ```
+3. Set your `GEMINI_API_KEY` in your `.env` or in the WSGI configuration file.
+4. Set the WSGI application to point to `app:app` and reload your Web App!
 
 ---
 

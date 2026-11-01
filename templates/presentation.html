@@ -146,21 +146,28 @@
       align-items: center;
       gap: 10px;
     }
-    .voice-btn {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: #fff;
-      border: none;
+    .action-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #e2e8f0;
       padding: 6px 14px;
       border-radius: 8px;
       cursor: pointer;
       font-size: 0.82rem;
       font-weight: 600;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: opacity 0.2s, transform 0.2s;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.1s;
+      font-family: 'Inter', sans-serif;
     }
-    .voice-btn:hover { opacity: 0.9; transform: scale(1.02); }
+    .action-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.02); }
+    .voice-btn {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      border: none;
+    }
     .voice-btn.speaking { background: #ef4444; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{box-shadow: 0 0 10px rgba(239,68,68,0.4);} 50%{box-shadow: 0 0 20px rgba(239,68,68,0.8);} }
 
@@ -182,7 +189,7 @@
     <div style="display:flex; align-items:center; gap:16px;">
       <span class="top-bar-brand">🤖 RepoNarrator AI</span>
       <div class="voice-controls">
-        <button id="voiceBtn" class="voice-btn" onclick="toggleNarration()">
+        <button id="voiceBtn" class="action-btn voice-btn" onclick="toggleNarration()">
           <span id="voiceIcon">🔊</span> <span id="voiceText">Narrate Slide</span>
         </button>
         <label class="auto-toggle">
@@ -191,7 +198,12 @@
         </label>
       </div>
     </div>
-    <a href="/" class="back-btn">← New Analysis</a>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="action-btn" onclick="exportPresentation()" title="Save as PDF or print slides">
+        📄 Export PDF
+      </button>
+      <a href="/" class="back-btn">← New Analysis</a>
+    </div>
   </div>
 
   <div class="watermark">RepoNarrator AI • Powered by Gemini</div>
@@ -363,6 +375,17 @@
       }
     }
 
+    function exportPresentation() {
+      // Reveal.js print mode support: appends ?print-pdf and invokes native print dialog
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has('print-pdf')) {
+        url.searchParams.set('print-pdf', '');
+        window.location.href = url.toString();
+      } else {
+        window.print();
+      }
+    }
+
     // ── Load slides from storage & initialize Reveal ──
     window.addEventListener('load', () => {
       const raw = localStorage.getItem('reponarrator_slides') || sessionStorage.getItem('reponarrator_slides');
@@ -398,6 +421,11 @@
           speakSlide(event.indexh);
         }
       });
+
+      // If loaded in print-pdf mode, automatically prompt print dialog once slides are ready
+      if (window.location.search.includes('print-pdf')) {
+        setTimeout(() => { window.print(); }, 1200);
+      }
     });
   </script>
 </body>

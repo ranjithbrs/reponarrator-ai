@@ -45,6 +45,7 @@ Return ONLY a JSON object with these exact fields:
   "tech_stack": "comma-separated technologies e.g. Python, Flask, MySQL, JavaScript",
   "primary_language": "main programming language",
   "frameworks": ["Framework1", "Framework2"],
+  "components": ["Frontend UI", "Backend API", "Authentication Module", "Database Layer"],
   "key_features": ["feature 1", "feature 2", "feature 3", "feature 4", "feature 5"],
   "architecture": "2-3 sentence description of the architecture pattern",
   "use_case": "1-2 sentences on who uses this and why",
@@ -75,7 +76,10 @@ Respond with ONLY the JSON object, no markdown, no explanation."""
             text = text.split('```')[1]
             if text.startswith('json'):
                 text = text[4:]
-        return json.loads(text.strip())
+        parsed = json.loads(text.strip())
+        if 'components' not in parsed or not isinstance(parsed['components'], list):
+            parsed['components'] = ["Client Interface", "Core Business Logic", "Data Storage"]
+        return parsed
     except Exception as e:
         print(f"Analyzer fallback triggered: {e}")
         return {
@@ -84,6 +88,7 @@ Respond with ONLY the JSON object, no markdown, no explanation."""
             "tech_stack": repo_info.get('language', 'Multiple Technologies'),
             "primary_language": repo_info.get('language', 'Unknown'),
             "frameworks": [],
+            "components": ["Client Interface", "Core Business Logic", "Data Storage"],
             "key_features": ["Authentication", "Dashboard", "Database integration", "REST API", "Responsive UI"],
             "architecture": "Multi-tier MVC architecture with frontend and backend separation.",
             "use_case": "Designed to solve a real-world problem with a clean software solution.",

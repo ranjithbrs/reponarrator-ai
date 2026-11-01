@@ -85,7 +85,7 @@ def parse_github_url(url):
     if not url or not isinstance(url, str):
         raise ValueError("GitHub URL must be a non-empty string.")
     clean_url = url.strip().rstrip('/')
-    match = re.search(r'github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/|$)', clean_url)
+    match = re.search(r'^(?:https?://)?(?:www\.)?github\.com/([^/]+)/([^/]+?)(?:\.git)?(?:/|$)', clean_url)
     if match:
         return match.group(1), match.group(2)
     raise ValueError(f"Invalid GitHub URL: '{url}'. Expected format: https://github.com/owner/repo")
@@ -320,13 +320,23 @@ def fetch_repo(repo_url):
                             raw = base64.b64decode(c_data['content']).decode('utf-8', errors='replace')
                             if len(raw) <= MAX_FILE_SIZE:
                                 files[path] = raw
-                    elif cr.status_code == 403 and cr.headers.get('X-RateLimit-Remaining') == '0':
-                        raise GitHubRateLimitError("GitHub rate limit exceeded fetching file content.")
-                except GitHubRateLimitError:
+                    elif cr.status_code == 401:
+                        raise GitHubAuthError(f"GitHub authentication failed fetching blob '{path}' (HTTP 401).")
+                    elif cr.status_code == 403:
+                        if cr.headers.get('X-RateLimit-Remaining') == '0':
+                            reset_time = cr.headers.get('X-RateLimit-Reset', 'soon')
+                            raise GitHubRateLimitError(f"GitHub rate limit exceeded fetching blob '{path}' (Resets: {reset_time}).")
+                        raise GitHubAccessForbiddenError(f"Access to blob '{path}' is forbidden (HTTP 403).")
+                    elif cr.status_code == 404:
+                        print(f"Warning: Blob '{path}' not found on remote (HTTP 404).")
+                    else:
+                        print(f"Warning: Fetching blob '{path}' returned HTTP {cr.status_code}.")
+                except (GitHubAuthError, GitHubRateLimitError, GitHubAccessForbiddenError):
                     raise
+                except requests.exceptions.Timeout:
+                    print(f"Warning: Timeout fetching blob '{path}'. Skipping file.")
                 except Exception as e:
                     print(f"Warning: Could not fetch blob for {path}: {e}")
-                    pass
 
     if not files:
         raise GitHubFetchError(

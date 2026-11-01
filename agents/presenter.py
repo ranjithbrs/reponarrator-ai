@@ -42,28 +42,36 @@ def validate_and_normalize_slides(slides, name, stack_str, stack_list, explanati
 
             subtitle = str(slide.get('subtitle', '')).strip()
             
-            raw_bullets = slide.get('bullets', [])
+            # Strict bullet validation: must be a list of non-empty strings, no coercion of non-strings
+            raw_bullets = slide.get('bullets')
             if not isinstance(raw_bullets, list) or len(raw_bullets) == 0:
                 is_valid = False
                 break
-            bullets = [str(b).strip() for b in raw_bullets if str(b).strip()]
-            if not bullets:
-                is_valid = False
+            bullets = []
+            for b in raw_bullets:
+                if not isinstance(b, str) or not b.strip():
+                    is_valid = False
+                    break
+                bullets.append(b.strip())
+            if not is_valid:
                 break
 
-            color_theme = str(slide.get('color_theme', 'blue')).strip().lower()
+            # Strict theme validation: reject invalid themes immediately
+            color_theme = str(slide.get('color_theme', '')).strip().lower()
             if color_theme not in ALLOWED_THEMES:
-                color_theme = 'blue'
+                is_valid = False
+                break
 
             badge = str(slide.get('badge', '')).strip()
             emoji = str(slide.get('emoji', '📌')).strip()
             hero_text = str(slide.get('hero_text', '')).strip()
             
-            # Narration script enforcement
-            narration = str(slide.get('narration', '')).strip()
-            if len(narration) < 15:
-                # Construct clean narration from slide fields if too short
-                narration = f"{title}. {subtitle}. {' '.join(bullets)}."
+            # Strict narration validation: must be a string of at least 15 characters, no synthetic coercion
+            narration = slide.get('narration')
+            if not isinstance(narration, str) or len(narration.strip()) < 15:
+                is_valid = False
+                break
+            narration = narration.strip()
 
             normalized.append({
                 "title": title,

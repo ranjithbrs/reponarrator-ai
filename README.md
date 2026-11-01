@@ -1,13 +1,23 @@
 # 🤖 RepoNarrator AI — Multi-Agent GitHub Presentation Generator
 
 [![Python: 3.10+](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![AI: Google Gemini 2.0](https://img.shields.io/badge/AI-Gemini%202.0%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
+[![AI: Google Gemini 3.6 Flash](https://img.shields.io/badge/AI-Gemini%203.6%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Architecture: Multi--Agent](https://img.shields.io/badge/Architecture-Multi--Agent%20Pipeline-orange?style=for-the-badge)](agents/)
 [![Realtime: Server--Sent Events](https://img.shields.io/badge/Streaming-Server--Sent%20Events%20(SSE)-success?style=for-the-badge)](app.py)
+[![Tests: Unittest](https://img.shields.io/badge/Tests-17%20Passed-brightgreen?style=for-the-badge)](test_pipeline.py)
 [![Article: Medium](https://img.shields.io/badge/Article-Medium%20Deep%20Dive-000000?style=for-the-badge&logo=medium&logoColor=white)](https://medium.com/@ranjithb2k06/building-an-autonomous-4-agent-pipeline-with-google-gemini-2-0-flash-and-server-sent-events-65d0bc944d2c)
 [![License: MIT](https://img.shields.io/badge/License-MIT-purple?style=for-the-badge)](LICENSE)
 
-> 🌟 **Transform any code project into a stunning presentation in one click — no PowerPoint or coding knowledge required!**
+> 🌟 **Transform any code project into an interactive, narrated presentation deck in seconds — featuring real-time architecture synthesis, browser Web Speech voiceover, and one-click PDF export!**
+
+---
+
+## 📸 Screenshots & Visual Walkthrough
+
+| 🖥️ Multi-Agent Analysis Dashboard | 📊 Live Interactive Presentation Deck |
+| :---: | :---: |
+| ![Dashboard Preview](assets/dashboard_preview.png) | ![Presentation Preview](assets/presentation_preview.png) |
+| *Real-time SSE event pipeline streaming 4 agent phases* | *Reveal.js deck with AI voiceover narration & PDF export* |
 
 ---
 
@@ -147,16 +157,21 @@ reponarrator-ai/
 ├── app.py                      # Flask backend, SSE event streaming route & view controllers
 ├── Procfile                    # Production Gunicorn process manager definition
 ├── requirements.txt            # Python dependencies (Flask, google-genai, requests)
-├── .env.example                # Template for Gemini API key configuration
+├── test_pipeline.py            # Unified unittest suite (17 offline unit tests + live integration)
+├── .env.example                # Template for Gemini API key & optional GitHub token
 ├── README.md                   # Comprehensive project documentation
+├── assets/                     # Genuine UI screenshots and sample PDF export
+│   ├── dashboard_preview.png   # Main analysis dashboard screenshot
+│   ├── presentation_preview.png# Generated Reveal.js slide screenshot
+│   └── presentation_exported.pdf# Sample exported presentation deck
 ├── agents/
-│   ├── fetcher.py              # Agent 1: GitHub API tree traversal & file filter
-│   ├── analyzer.py             # Agent 2: Architecture & technology inference
+│   ├── fetcher.py              # Agent 1: GitHub API & zipball stream extraction
+│   ├── analyzer.py             # Agent 2: Architecture & tech stack inference
 │   ├── explainer.py            # Agent 3: Narrative & technical synthesis
-│   └── presenter.py            # Agent 4: Reveal.js slide generation
+│   └── presenter.py            # Agent 4: Reveal.js slides & voiceover generation
 ├── static/
-│   ├── css/                    # Dark glassmorphic design system
-│   └── js/                     # SSE client listener & dynamic UI renderer
+│   ├── style.css               # Dark glassmorphic design system
+│   └── script.js               # SSE client listener & dynamic UI renderer
 └── templates/
     ├── index.html              # Main multi-agent analysis dashboard
     └── presentation.html       # Full-screen Reveal.js presentation canvas

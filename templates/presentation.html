@@ -6,6 +6,7 @@
   <title>RepoNarrator AI — Presentation</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/print/pdf.css" type="text/css" media="print" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
   <style>
     :root { --accent: #6366f1; }
@@ -228,39 +229,54 @@
       green: 'slide-green', teal: 'slide-teal', orange: 'slide-orange'
     };
 
+    function escapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     function buildSlideHTML(slide) {
       const theme = THEME_CLASS[slide.color_theme] || 'slide-blue';
-      const badge = slide.badge ? `<div class="slide-badge">${slide.badge}</div>` : '';
+      const badge = slide.badge ? `<div class="slide-badge">${escapeHTML(slide.badge)}</div>` : '';
+      const title = escapeHTML(slide.title);
+      const subtitle = escapeHTML(slide.subtitle);
+      const emoji = escapeHTML(slide.emoji || '📌');
 
       if (slide.type === 'intro') {
+        const badgesHTML = (slide.bullets || [])
+          .map(b => `<span class="intro-badge">${escapeHTML(b)}</span>`).join('');
         return `
           <section class="${theme}">
             <div class="slide-inner slide-intro">
-              <span class="hero-emoji">${slide.emoji || '🚀'}</span>
+              <span class="hero-emoji">${emoji || '🚀'}</span>
               ${badge}
-              <h1 class="project-title">${slide.title}</h1>
-              <p class="project-tagline">${slide.subtitle || ''}</p>
+              <h1 class="project-title">${title}</h1>
+              <p class="project-tagline">${subtitle}</p>
               <div class="intro-meta">
-                ${(slide.bullets || []).map(b => `<span class="intro-badge">${b}</span>`).join('')}
+                ${badgesHTML}
               </div>
             </div>
           </section>`;
       }
 
       const bulletsHTML = (slide.bullets || [])
-        .map(b => `<li>${b}</li>`).join('');
+        .map(b => `<li>${escapeHTML(b)}</li>`).join('');
       const heroText = slide.hero_text
-        ? `<div class="hero-text-big">"${slide.hero_text}"</div>` : '';
+        ? `<div class="hero-text-big">"${escapeHTML(slide.hero_text)}"</div>` : '';
 
       return `
         <section class="${theme}">
           <div class="slide-inner">
             ${badge}
             <div class="slide-header">
-              <span class="slide-emoji">${slide.emoji || '📌'}</span>
+              <span class="slide-emoji">${emoji}</span>
               <div>
-                <div class="slide-title-text">${slide.title}</div>
-                ${slide.subtitle ? `<div class="slide-subtitle-text">${slide.subtitle}</div>` : ''}
+                <div class="slide-title-text">${title}</div>
+                ${subtitle ? `<div class="slide-subtitle-text">${subtitle}</div>` : ''}
               </div>
             </div>
             ${heroText}

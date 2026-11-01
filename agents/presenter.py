@@ -1,6 +1,7 @@
 """
 Agent 4 — Presenter
-Uses Gemini to generate structured slide data for a beautiful presentation.
+Uses Gemini to generate structured slide data for a Reveal.js presentation.
+Includes strict schema enforcement & type validation directly in generate_slides().
 """
 
 from google import genai
@@ -11,11 +12,160 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+REQUIRED_SEQUENCE = ["intro", "problem", "solution", "features", "tech", "impact", "future"]
+ALLOWED_THEMES = {"blue", "purple", "green", "teal", "orange"}
+
+
+def validate_and_normalize_slides(slides, name, stack_str, stack_list, explanation, analysis, repo_info, features, future, impact_str):
+    """
+    Validates model output slides against the strict 7-slide contract.
+    Returns normalized slides if valid; otherwise returns resilient fallback slides.
+    """
+    if isinstance(slides, list) and len(slides) == 7:
+        is_valid = True
+        normalized = []
+        for idx, slide in enumerate(slides):
+            if not isinstance(slide, dict):
+                is_valid = False
+                break
+
+            expected_type = REQUIRED_SEQUENCE[idx]
+            actual_type = str(slide.get('type', '')).strip().lower()
+            if actual_type != expected_type:
+                is_valid = False
+                break
+
+            title = str(slide.get('title', '')).strip()
+            if not title:
+                is_valid = False
+                break
+
+            subtitle = str(slide.get('subtitle', '')).strip()
+            
+            raw_bullets = slide.get('bullets', [])
+            if not isinstance(raw_bullets, list) or len(raw_bullets) == 0:
+                is_valid = False
+                break
+            bullets = [str(b).strip() for b in raw_bullets if str(b).strip()]
+            if not bullets:
+                is_valid = False
+                break
+
+            color_theme = str(slide.get('color_theme', 'blue')).strip().lower()
+            if color_theme not in ALLOWED_THEMES:
+                color_theme = 'blue'
+
+            badge = str(slide.get('badge', '')).strip()
+            emoji = str(slide.get('emoji', '📌')).strip()
+            hero_text = str(slide.get('hero_text', '')).strip()
+            
+            # Narration script enforcement
+            narration = str(slide.get('narration', '')).strip()
+            if len(narration) < 15:
+                # Construct clean narration from slide fields if too short
+                narration = f"{title}. {subtitle}. {' '.join(bullets)}."
+
+            normalized.append({
+                "title": title,
+                "subtitle": subtitle,
+                "type": actual_type,
+                "bullets": bullets,
+                "hero_text": hero_text,
+                "emoji": emoji or '📌',
+                "color_theme": color_theme,
+                "badge": badge,
+                "narration": narration
+            })
+
+        if is_valid and len(normalized) == 7:
+            return normalized
+
+    # Fallback slides — 100% resilient, strictly conforming to the 7-slide contract
+    return [
+        {
+            "title": name,
+            "subtitle": str(explanation.get('tagline') or analysis.get('project_type') or 'Software System'),
+            "type": "intro",
+            "bullets": [f"🔧 Built with {stack_str[:60]}", f"🌐 {repo_info.get('url', 'GitHub Open Source')}"],
+            "hero_text": str(explanation.get('one_liner') or f"Introducing {name}"),
+            "emoji": "🚀",
+            "color_theme": "blue",
+            "badge": "LIVE DEMO",
+            "narration": f"Welcome to the presentation for {name}. This project is a {analysis.get('project_type', 'software platform')} built with {stack_str}."
+        },
+        {
+            "title": "The Problem",
+            "subtitle": "Current Workflow Inefficiencies",
+            "type": "problem",
+            "bullets": ["❌ Manual processes are time consuming", "❌ Lack of automated verification", "❌ Users need a modern solution"],
+            "hero_text": "Overcoming traditional operational bottlenecks.",
+            "emoji": "❓",
+            "color_theme": "orange",
+            "badge": "CHALLENGE",
+            "narration": str(explanation.get('problem_solved') or 'Traditional workflows often rely on manual, time-consuming operations that lack automation.')
+        },
+        {
+            "title": "Our Solution",
+            "subtitle": f"{name} Architecture",
+            "type": "solution",
+            "bullets": [str(explanation.get('overview', f'{name} addresses core bottlenecks with software automation.'))[:100]],
+            "hero_text": str(explanation.get('tagline') or f"Automating workflows with {name}"),
+            "emoji": "✅",
+            "color_theme": "green",
+            "badge": "SOLUTION",
+            "narration": str(explanation.get('overview') or f'{name} addresses these challenges by delivering an automated, streamlined software solution.')
+        },
+        {
+            "title": "Key Features",
+            "subtitle": "Core Capabilities",
+            "type": "features",
+            "bullets": [f"⭐ {f}" for f in features[:5]],
+            "hero_text": "Engineered for high performance and reliability.",
+            "emoji": "⭐",
+            "color_theme": "purple",
+            "badge": "FEATURES",
+            "narration": f"Here are the core capabilities of {name}, designed for ease of use, security, and reliability."
+        },
+        {
+            "title": "Tech Stack",
+            "subtitle": "Under the Hood",
+            "type": "tech",
+            "bullets": [f"🔧 {t}" for t in stack_list[:5]],
+            "hero_text": stack_str,
+            "emoji": "💻",
+            "color_theme": "teal",
+            "badge": "MODERN STACK",
+            "narration": f"Under the hood, this project is powered by {stack_str}, providing modularity, high performance, and scalability."
+        },
+        {
+            "title": "Impact & Demo",
+            "subtitle": "Value Delivered",
+            "type": "impact",
+            "bullets": [f"✅ {impact_str[:120]}"],
+            "hero_text": "Delivering measurable time savings.",
+            "emoji": "📊",
+            "color_theme": "blue",
+            "badge": "IMPACT",
+            "narration": impact_str
+        },
+        {
+            "title": "Future Roadmap",
+            "subtitle": "What Lies Ahead",
+            "type": "future",
+            "bullets": [f"🔮 {f}" for f in future[:3]],
+            "hero_text": "Continuous innovation and feature expansion.",
+            "emoji": "🔮",
+            "color_theme": "purple",
+            "badge": "ROADMAP",
+            "narration": "Looking ahead, the development roadmap includes introducing deep AI integrations, mobile client support, and real-time analytics."
+        }
+    ]
+
 
 def generate_slides(explanation, analysis, repo_info):
     """
     Generate 7 structured presentation slides.
-    Returns: list of slide dicts
+    Returns: strictly-validated list of 7 slide dicts matching the sequence
     """
     name = str(analysis.get('project_name') or repo_info.get('name') or 'Project')
     
@@ -108,89 +258,16 @@ Respond with ONLY the JSON array."""
             config=types.GenerateContentConfig(response_mime_type="application/json")
         )
         text = response.text.strip()
-        slides = json.loads(text)
-        if isinstance(slides, list) and len(slides) >= 4:
-            return slides
+        if '```' in text:
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        slides = json.loads(text.strip())
+        return validate_and_normalize_slides(
+            slides, name, stack_str, stack_list, explanation, analysis, repo_info, features, future, impact_str
+        )
     except Exception as e:
         print(f"Presenter fallback triggered: {e}")
-
-    # Fallback slides — 100% resilient and safe
-    return [
-        {
-            "title": name,
-            "subtitle": str(explanation.get('tagline') or analysis.get('project_type') or 'Software System'),
-            "type": "intro",
-            "bullets": [f"🔧 Built with {stack_str[:60]}", f"🌐 {repo_info.get('url', 'GitHub Open Source')}"],
-            "hero_text": str(explanation.get('one_liner') or f"Introducing {name}"),
-            "emoji": "🚀",
-            "color_theme": "blue",
-            "badge": "LIVE DEMO",
-            "narration": f"Welcome to the presentation for {name}. This project is a {analysis.get('project_type', 'software platform')} built with {stack_str}."
-        },
-        {
-            "title": "The Problem",
-            "subtitle": "Current Workflow Inefficiencies",
-            "type": "problem",
-            "bullets": ["❌ Manual processes are time consuming", "❌ Lack of automated verification", "❌ Users need a modern solution"],
-            "hero_text": "Overcoming traditional operational bottlenecks.",
-            "emoji": "❓",
-            "color_theme": "orange",
-            "badge": "CHALLENGE",
-            "narration": str(explanation.get('problem_solved') or 'Traditional workflows often rely on manual, time-consuming operations that lack automation.')
-        },
-        {
-            "title": "Our Solution",
-            "subtitle": f"{name} Architecture",
-            "type": "solution",
-            "bullets": [str(explanation.get('overview', f'{name} addresses core bottlenecks with software automation.'))[:100]],
-            "hero_text": str(explanation.get('tagline') or f"Automating workflows with {name}"),
-            "emoji": "✅",
-            "color_theme": "green",
-            "badge": "SOLUTION",
-            "narration": str(explanation.get('overview') or f'{name} addresses these challenges by delivering an automated, streamlined software solution.')
-        },
-        {
-            "title": "Key Features",
-            "subtitle": "Core Capabilities",
-            "type": "features",
-            "bullets": [f"⭐ {f}" for f in features[:5]],
-            "hero_text": "Engineered for high performance and reliability.",
-            "emoji": "⭐",
-            "color_theme": "purple",
-            "badge": "FEATURES",
-            "narration": f"Here are the core capabilities of {name}, designed for ease of use, security, and reliability."
-        },
-        {
-            "title": "Tech Stack",
-            "subtitle": "Under the Hood",
-            "type": "tech",
-            "bullets": [f"🔧 {t}" for t in stack_list[:5]],
-            "hero_text": stack_str,
-            "emoji": "💻",
-            "color_theme": "teal",
-            "badge": "MODERN STACK",
-            "narration": f"Under the hood, this project is powered by {stack_str}, providing modularity, high performance, and scalability."
-        },
-        {
-            "title": "Impact & Demo",
-            "subtitle": "Value Delivered",
-            "type": "impact",
-            "bullets": [f"✅ {impact_str[:120]}"],
-            "hero_text": "Delivering measurable time savings.",
-            "emoji": "📊",
-            "color_theme": "blue",
-            "badge": "IMPACT",
-            "narration": impact_str
-        },
-        {
-            "title": "Future Roadmap",
-            "subtitle": "What Lies Ahead",
-            "type": "future",
-            "bullets": [f"🔮 {f}" for f in future[:3]],
-            "hero_text": "Continuous innovation and feature expansion.",
-            "emoji": "🔮",
-            "color_theme": "purple",
-            "badge": "ROADMAP",
-            "narration": "Looking ahead, the development roadmap includes introducing deep AI integrations, mobile client support, and real-time analytics."
-        }
-    ]
+        return validate_and_normalize_slides(
+            None, name, stack_str, stack_list, explanation, analysis, repo_info, features, future, impact_str
+        )

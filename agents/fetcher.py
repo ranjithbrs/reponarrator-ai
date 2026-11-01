@@ -3,9 +3,10 @@ Agent 1 — Fetcher
 Fetches and prioritizes source code files and manifests from GitHub repositories.
 Features:
 1. Dynamic default_branch discovery via repository metadata.
-2. Structured exceptions for 401 (Auth), 403 (Rate Limit/Forbidden), 404 (Not Found/Private).
-3. Resilient zipball extraction with archive download byte caps (max 30MB) and file size safety.
-4. Token-aware GitHub REST API tree fallback.
+2. Structured exceptions for 401 (Auth), 403 (Rate Limit vs. Forbidden), 404 (Not Found/Private).
+3. Chunked streaming zipball extraction (64KB chunks) with strict byte budget (30MB cap).
+4. Safe extraction with diagnostic logging.
+5. Token-aware GitHub REST API tree fallback with full error inspection.
 """
 
 import os
@@ -22,7 +23,8 @@ load_dotenv()
 
 MAX_FILES = 25
 MAX_FILE_SIZE = 50000        # 50KB per individual file
-MAX_ZIPBALL_SIZE = 30000000  # 30MB max compressed zipball download
+MAX_ZIPBALL_SIZE = 30000000  # 30MB maximum zipball download size
+CHUNK_SIZE = 65536           # 64KB download chunk size
 
 SKIP_EXTENSIONS = {
     '.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico',
@@ -89,10 +91,10 @@ def parse_github_url(url):
     raise ValueError(f"Invalid GitHub URL: '{url}'. Expected format: https://github.com/owner/repo")
 
 
-def fetch_repo_via_zip(owner, repo, branches):
+def fetch_repo_via_zip(owner, repo, branches, repo_confirmed_exists=True):
     """
-    Download and extract repository files using GitHub's zipball archive endpoint.
-    Safely enforces archive download size caps and file filters.
+    Download and extract repository files using chunked streaming zipball extraction.
+    Enforces chunk-by-chunk download caps without loading oversized archives into memory.
     """
     files = {}
     token = os.getenv('GITHUB_TOKEN')
@@ -106,18 +108,32 @@ def fetch_repo_via_zip(owner, repo, branches):
             req = urllib.request.Request(zip_url, headers=req_headers)
             with urllib.request.urlopen(req, timeout=15) as resp:
                 if resp.status == 200:
-                    # Enforce download size cap
                     content_length = resp.headers.get('Content-Length')
                     if content_length and int(content_length) > MAX_ZIPBALL_SIZE:
-                        print(f"Zipball exceeds maximum allowed size ({content_length} bytes). Aborting zip extraction.")
-                        break
+                        print(f"Warning: Zipball Content-Length ({content_length} bytes) exceeds limit ({MAX_ZIPBALL_SIZE} bytes). Skipping branch '{branch}'.")
+                        continue
 
-                    zip_data = resp.read(MAX_ZIPBALL_SIZE + 1)
-                    if len(zip_data) > MAX_ZIPBALL_SIZE:
-                        print(f"Zipball stream exceeded {MAX_ZIPBALL_SIZE} bytes. Aborting zip extraction.")
-                        break
+                    # Chunk-by-chunk streaming read with strict byte budget
+                    buffer = io.BytesIO()
+                    bytes_downloaded = 0
+                    oversized = False
 
-                    with zipfile.ZipFile(io.BytesIO(zip_data)) as z:
+                    while True:
+                        chunk = resp.read(CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        bytes_downloaded += len(chunk)
+                        if bytes_downloaded > MAX_ZIPBALL_SIZE:
+                            print(f"Warning: Zipball download for branch '{branch}' exceeded {MAX_ZIPBALL_SIZE} bytes. Aborting stream.")
+                            oversized = True
+                            break
+                        buffer.write(chunk)
+
+                    if oversized:
+                        continue
+
+                    buffer.seek(0)
+                    with zipfile.ZipFile(buffer) as z:
                         namelist = z.namelist()
 
                         def sort_key(name):
@@ -146,19 +162,32 @@ def fetch_repo_via_zip(owner, repo, branches):
                             try:
                                 content = z.read(member).decode('utf-8', errors='replace')
                                 files[rel_path] = content
-                            except Exception:
-                                pass
+                            except Exception as file_err:
+                                print(f"Warning: Failed to decode member {member}: {file_err}")
+
                     if files:
                         return files
+
         except urllib.error.HTTPError as e:
             if e.code == 404:
-                # Branch might not exist, proceed to test next branch
+                # If metadata retrieval failed to confirm existence, 404 means the repo itself is missing or private
+                if not repo_confirmed_exists:
+                    raise GitHubNotFoundError(f"Repository '{owner}/{repo}' was not found or is inaccessible (HTTP 404).")
+                # Otherwise, 404 simply means this branch name does not exist
                 continue
             elif e.code == 401:
-                raise GitHubAuthError("GitHub authentication failed. Check your GITHUB_TOKEN.")
+                raise GitHubAuthError("GitHub authentication failed (HTTP 401). Check your GITHUB_TOKEN.")
             elif e.code == 403:
-                raise GitHubAccessForbiddenError("Access to repository archive is forbidden or rate-limited.")
-        except Exception:
+                # Inspect rate limit header on zipball HTTP 403
+                remaining = e.headers.get('X-RateLimit-Remaining')
+                if remaining == '0':
+                    reset_time = e.headers.get('X-RateLimit-Reset', 'soon')
+                    raise GitHubRateLimitError(f"GitHub rate limit exceeded while downloading zipball (Resets: {reset_time}).")
+                raise GitHubAccessForbiddenError("Access to repository archive is forbidden (HTTP 403).")
+            else:
+                print(f"Warning: Zipball download for branch '{branch}' returned HTTP {e.code}.")
+        except Exception as e:
+            print(f"Warning: Failed to download zipball for branch '{branch}': {e}")
             continue
 
     return files
@@ -185,6 +214,7 @@ def fetch_repo(repo_url):
 
     headers = get_github_headers()
     branches_to_try = []
+    repo_confirmed_exists = False
 
     # 1. Retrieve Repository Metadata first to determine default_branch and inspect HTTP status
     try:
@@ -192,6 +222,7 @@ def fetch_repo(repo_url):
         r = requests.get(repo_api, headers=headers, timeout=8)
 
         if r.status_code == 200:
+            repo_confirmed_exists = True
             repo_data = r.json()
             default_branch = repo_data.get('default_branch', 'main')
             repo_info.update({
@@ -213,7 +244,7 @@ def fetch_repo(repo_url):
             if remaining == '0':
                 reset_time = r.headers.get('X-RateLimit-Reset', 'soon')
                 raise GitHubRateLimitError(
-                    f"GitHub API rate limit exceeded for {owner}/{repo}. (Resets at timestamp {reset_time}). "
+                    f"GitHub API rate limit exceeded for {owner}/{repo} (Resets at timestamp {reset_time}). "
                     "Configure a GITHUB_TOKEN in .env to lift limits to 5,000 requests/hour."
                 )
             else:
@@ -239,8 +270,8 @@ def fetch_repo(repo_url):
         if fallback not in branches_to_try:
             branches_to_try.append(fallback)
 
-    # 2. Preferred Extraction: Fast Zipball extraction
-    files = fetch_repo_via_zip(owner, repo, branches_to_try)
+    # 2. Preferred Extraction: Fast chunked Zipball extraction
+    files = fetch_repo_via_zip(owner, repo, branches_to_try, repo_confirmed_exists=repo_confirmed_exists)
 
     # 3. Fallback: GitHub REST API Tree & Blobs
     if not files:
@@ -252,11 +283,20 @@ def fetch_repo(repo_url):
                 if tr.status_code == 200:
                     tree_data = tr.json()
                     break
-                elif tr.status_code == 403 and tr.headers.get('X-RateLimit-Remaining') == '0':
-                    raise GitHubRateLimitError("GitHub API rate limit exceeded while querying repository tree.")
-            except GitHubRateLimitError:
+                elif tr.status_code == 401:
+                    raise GitHubAuthError("GitHub authentication failed while querying repository tree (HTTP 401).")
+                elif tr.status_code == 403:
+                    if tr.headers.get('X-RateLimit-Remaining') == '0':
+                        raise GitHubRateLimitError("GitHub API rate limit exceeded while querying repository tree.")
+                    raise GitHubAccessForbiddenError("Access to repository tree is forbidden (HTTP 403).")
+                elif tr.status_code == 404:
+                    continue
+                else:
+                    print(f"Warning: Tree API returned HTTP {tr.status_code} for branch '{branch}'.")
+            except (GitHubAuthError, GitHubRateLimitError, GitHubAccessForbiddenError):
                 raise
-            except Exception:
+            except Exception as e:
+                print(f"Warning: Failed querying tree for branch '{branch}': {e}")
                 pass
 
         if tree_data:
@@ -280,7 +320,12 @@ def fetch_repo(repo_url):
                             raw = base64.b64decode(c_data['content']).decode('utf-8', errors='replace')
                             if len(raw) <= MAX_FILE_SIZE:
                                 files[path] = raw
-                except Exception:
+                    elif cr.status_code == 403 and cr.headers.get('X-RateLimit-Remaining') == '0':
+                        raise GitHubRateLimitError("GitHub rate limit exceeded fetching file content.")
+                except GitHubRateLimitError:
+                    raise
+                except Exception as e:
+                    print(f"Warning: Could not fetch blob for {path}: {e}")
                     pass
 
     if not files:

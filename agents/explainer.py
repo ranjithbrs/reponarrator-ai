@@ -2,6 +2,7 @@
 Agent 3 — Explainer
 Uses Gemini to write a clear, impressive explanation of the project
 suitable for an industry presentation.
+Includes strict schema enforcement & type validation.
 """
 
 from google import genai
@@ -13,10 +14,55 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def normalize_explainer_schema(parsed: dict, analysis: dict) -> dict:
+    """Enforces strict string types and minimum array lengths on Explainer output."""
+    if not isinstance(parsed, dict):
+        parsed = {}
+
+    name = str(analysis.get('project_name', 'This project')).strip()
+    p_type = str(analysis.get('project_type', 'software solution')).strip()
+    stack = str(analysis.get('tech_stack', 'modern technologies')).strip()
+
+    tagline = str(parsed.get('tagline') or f"{name} — Redefining efficiency through intelligent software.").strip()
+    overview = str(parsed.get('overview') or f"{name} is a {p_type} built using {stack}.").strip()
+    problem_solved = str(parsed.get('problem_solved') or "Eliminates manual bottlenecks by providing an automated, scalable software solution.").strip()
+    how_it_works = str(parsed.get('how_it_works') or f"Built on {stack}, the system coordinates user workflows with secure backend services.").strip()
+    tech_highlights = str(parsed.get('tech_highlights') or f"Leverages {stack} for high modularity, responsive UI, and resilient data processing.").strip()
+    impact = str(parsed.get('impact') or "Drives productivity and reduces operational overhead for end users.").strip()
+    one_liner = str(parsed.get('one_liner') or f"{name} is a {p_type} that automates real-world workflows using {stack}.").strip()
+
+    def ensure_string_list(val, default_list, min_len=3):
+        if isinstance(val, list):
+            cleaned = [str(x).strip() for x in val if x and str(x).strip()]
+            if len(cleaned) >= min_len:
+                return cleaned
+        return default_list
+
+    default_features = analysis.get('key_features') if isinstance(analysis.get('key_features'), list) and len(analysis.get('key_features', [])) >= 3 else [
+        "Automated Workflow Execution", "Secure Data & Access Controls", "Responsive User Dashboard"
+    ]
+    key_features = ensure_string_list(parsed.get('key_features'), default_features, min_len=3)
+    challenges_solved = ensure_string_list(parsed.get('challenges_solved'), ["State Management", "Authentication Security", "Scalable Data Access"], min_len=2)
+    future_scope = ensure_string_list(parsed.get('future_scope'), ["Advanced AI Integration", "Mobile Application", "Real-Time Telemetry"], min_len=2)
+
+    return {
+        "tagline": tagline,
+        "overview": overview,
+        "problem_solved": problem_solved,
+        "how_it_works": how_it_works,
+        "key_features": key_features,
+        "tech_highlights": tech_highlights,
+        "impact": impact,
+        "challenges_solved": challenges_solved,
+        "future_scope": future_scope,
+        "one_liner": one_liner
+    }
+
+
 def explain_repo(analysis, files):
     """
     Generate a human-readable explanation of the project.
-    Returns: explanation dict with sections
+    Returns: strictly-validated explanation dict with guaranteed string fields and lists
     """
     # Extract README if present
     readme = ''
@@ -32,16 +78,16 @@ Based on this project analysis, write a compelling and clear presentation explan
 Project Analysis:
 {json.dumps(analysis, indent=2)}
 
-README Content (if available):
-{readme if readme else 'Not available'}
+README Excerpt:
+{readme}
 
-Write an impressive, clear explanation as a JSON object with EXACTLY these keys:
+Return ONLY a JSON object with these exact fields:
 {{
-  "tagline": "one powerful sentence describing the project (like a product tagline)",
-  "overview": "2-3 sentences explaining what this project is in simple language",
-  "problem_solved": "2-3 sentences on the real-world problem this solves",
-  "how_it_works": "3-4 sentences explaining how it technically works",
-  "key_features": ["5 specific impressive features with details"],
+  "tagline": "powerful 8-12 word tagline for the project",
+  "overview": "clear 2-3 sentence overview of what this project does and why it matters",
+  "problem_solved": "2 sentences on the exact real-world problem this solves",
+  "how_it_works": "3 sentences explaining the technical workflow from user action to result",
+  "key_features": ["feature 1 with brief benefit", "feature 2", "feature 3", "feature 4", "feature 5"],
   "tech_highlights": "2-3 sentences on what makes the tech stack impressive",
   "impact": "2 sentences on who benefits and how",
   "challenges_solved": ["2-3 technical challenges that were overcome"],
@@ -70,20 +116,8 @@ Respond with ONLY the JSON object."""
             text = text.split('```')[1]
             if text.startswith('json'):
                 text = text[4:]
-        return json.loads(text.strip())
+        parsed = json.loads(text.strip())
+        return normalize_explainer_schema(parsed, analysis)
     except Exception as e:
         print(f"Explainer fallback triggered: {e}")
-        name = analysis.get('project_name', 'This project')
-        stack = analysis.get('tech_stack', 'modern technologies')
-        return {
-            "tagline": f"{name} — Redefining efficiency through intelligent software.",
-            "overview": f"{name} is a {analysis.get('project_type')} built using {stack}.",
-            "problem_solved": "It addresses a key real-world problem with an automated software solution.",
-            "how_it_works": f"Built on {stack}, the system processes user input and delivers results through a clean interface.",
-            "key_features": analysis.get('key_features', ['Feature 1', 'Feature 2', 'Feature 3']),
-            "tech_highlights": f"The use of {stack} ensures scalability, security, and performance.",
-            "impact": "Saves time and reduces manual effort for end users significantly.",
-            "challenges_solved": ["Data consistency", "User authentication", "Scalable architecture"],
-            "future_scope": ["AI integration", "Mobile app", "Analytics dashboard"],
-            "one_liner": f"{name} is a {analysis.get('project_type')} that automates real-world workflows using {stack}."
-        }
+        return normalize_explainer_schema({}, analysis)
